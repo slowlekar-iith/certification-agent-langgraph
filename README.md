@@ -3,10 +3,10 @@
 # Goal 
 An intelligent agent built with LangGraph that processes Credly certification URLs and calculates credit points based on certification type and validity.
 
-## User Interaction 
+# User Interaction 
 How Users Interact with the Agent
 
-# Step 1: Launch the Agent
+## Step 1: Launch the Agent
 Users can interact with the agent through two methods:
 
 Method A: LangGraph Studio (Visual Interface)
@@ -16,7 +16,7 @@ Method B: Python Script (Programmatic)
 (python) from langgraph_cred_agent import run_agent
 response = run_agent("your query here")
 
-# Step 2: Submit a Query
+## Step 2: Submit a Query
 Users can ask following types of questions:
 Query Type 1: Check Credit Points for a Specific Badge (Expired)
 User: "How many credit points can I get for https://www.credly.com/badges/e192db17-f8c5-46aa-8f99-8a565223f1d6?"
@@ -32,7 +32,7 @@ Query Type 3: Hypothetical Certification Query
 User: "If I clear AWS Solution Architect Professional how many points will I get?"
 Agent Response: "You will get 10 credit points for that cert."
 
-# Step 3: View Results
+## Step 3: View Results
 The agent provides:
 
 Credit Points: Numerical value based on certification tier
@@ -40,14 +40,32 @@ Certification Name: Extracted from the badge or query
 Validity Status: Whether the certification is currently valid
 Reasoning: Clear explanation of the decision
 
-# Step 4: Continue Conversation
+## Step 4: Continue Conversation
 Users can ask follow-up questions in the same session:
 User: "What if I get both AWS Solutions Architect and Terraform Associate?"
 Agent: [Calculates cumulative points]
 
-## Agent Specification Overview
+# Agent Specification Overview
 
 1. Architecture Overview
+
+graph TD
+    A[User Input Layer<br/>LangGraph Studio / Python Interface] --> B[LangGraph Agent Core]
+    B --> C[Agent Node Main Logic]
+    C --> D{Query Type?}
+    D -->|URL| E[Tool 1: Web Scraper<br/>webscrap_cred_v2.py]
+    D -->|Text| F[Tool 2: Database Query<br/>SQLite]
+    E --> G[Extract Certification Data]
+    G --> F
+    F --> H[Response Generation]
+    H --> I[Return Credit Points & Status]
+    
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#ffe1f5
+    style H fill:#e1ffe1
+
+    
 
 System Components
 ┌─────────────────────────────────────────────────────────────┐
