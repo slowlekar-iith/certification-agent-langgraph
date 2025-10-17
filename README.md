@@ -48,26 +48,10 @@ Agent: [Calculates cumulative points]
 # Agent Specification Overview
 
 1. Architecture Overview
-
-graph TD
-    A[User Input Layer<br/>LangGraph Studio / Python Interface] --> B[LangGraph Agent Core]
-    B --> C[Agent Node Main Logic]
-    C --> D{Query Type?}
-    D -->|URL| E[Tool 1: Web Scraper<br/>webscrap_cred_v2.py]
-    D -->|Text| F[Tool 2: Database Query<br/>SQLite]
-    E --> G[Extract Certification Data]
-    G --> F
-    F --> H[Response Generation]
-    H --> I[Return Credit Points & Status]
-    
-    style A fill:#e1f5ff
-    style B fill:#fff4e1
-    style C fill:#ffe1f5
-    style H fill:#e1ffe1
-
-    
+ 
 
 System Components
+
 ┌─────────────────────────────────────────────────────────────┐
 │                    User Input Layer                         │
 │         (LangGraph Studio / Python Interface)               │
