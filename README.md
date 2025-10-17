@@ -64,6 +64,20 @@ print(response)
 └── README.md                    # This file
 ```
 
+## Query & Traces (Reference Screenshots)
+
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/eb2ac8ae632577e3b7ba39ec966df549d92e8e32/img/Credly_Query1_Screenshot.png)
+
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/eb2ac8ae632577e3b7ba39ec966df549d92e8e32/img/Credly_Query2_Screenshot.png)
+
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/eb2ac8ae632577e3b7ba39ec966df549d92e8e32/img/Credly_Query3_Screenshot.png)
+
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/eb2ac8ae632577e3b7ba39ec966df549d92e8e32/img/Credly_Trace_Screenshot.png)
+
+## Database/Table Records View
+
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/eb2ac8ae632577e3b7ba39ec966df549d92e8e32/img/Credly_DB_Screenshot.png)
+
 ## Credit Point System
 
 | Certification Type | Points |
