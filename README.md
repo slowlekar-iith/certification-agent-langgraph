@@ -52,7 +52,7 @@ Agent: [Calculates cumulative points]
 
 System Components
 
-![image alt]()
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/02af2bfa358b4fdc4fdd4446bef6e25fbb0a2846/img/Credly_System_Components.png)
 
 2. State Management
 
@@ -70,7 +70,7 @@ python{
 
 Query Classification Logic
 
-![image alt]()
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/02af2bfa358b4fdc4fdd4446bef6e25fbb0a2846/img/Credly_Decisionflow.png)
 
 4. Extensibility Points
 - Adding New Certification Tiers
