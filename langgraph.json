@@ -1,0 +1,7 @@
+{
+    "dependencies": ["."],
+    "graphs": {
+      "graph_credly": "./langgraph_cred_agent.py:app"
+    },
+    "env": ".env"
+}

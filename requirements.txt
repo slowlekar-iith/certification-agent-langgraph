@@ -1,0 +1,4 @@
+langchain 
+selenium
+beautifulsoup4
+langchain_groq
