@@ -52,37 +52,7 @@ Agent: [Calculates cumulative points]
 
 System Components
 
-┌─────────────────────────────────────────────────────────────┐
-│                    User Input Layer                         │
-│         (LangGraph Studio / Python Interface)               │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  LangGraph Agent Core                       │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │              Agent Node (Main Logic)                  │  │
-│  │  • Query Classification                               │  │
-│  │  • URL Pattern Matching                               │  │
-│  │  │  Orchestration Logic                               │  │
-│  └──┬────────────────────────────────────────────────────┘  │
-│     │                                                       │
-│     ├──► Tool 1: Web Scraper (webscrap_cred_v2.py)          │
-│     │    • Extracts cert data from Credly                   │
-│     │    • Returns: Name, Issue Date, Expiry Date           │
-│     │                                                       │
-│     └──► Tool 2: Database Query (SQLite)                    │
-│          • Matches cert name to point category              │
-│          • Returns: Category and Points                     │
-└─────────────────────────────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Response Generation                       │
-│    • Validity Check Logic                                   │
-│    • Point Calculation                                      │
-│    • Natural Language Response                              │
-└─────────────────────────────────────────────────────────────┘
+![image alt]()
 
 2. State Management
 
@@ -100,32 +70,7 @@ python{
 
 Query Classification Logic
 
-User Input
-    │
-    ▼
-┌─────────────────┐
-│ URL Detection?  │
-└────┬────────────┘
-     │
-     ├─ YES ──► Extract URL ──► Call Web Scraper Tool
-     │                              │
-     │                              ▼
-     │                         Parse Response
-     │                              │
-     │                              ▼
-     │                         Check Expiry Date
-     │                              │
-     │                              ├─ Valid ──► Query DB ──► Award Points
-     │                              │
-     │                              └─ Expired ──► Query DB ──► 0 Points (with message)
-     │
-     └─ NO ──► Extract Cert Name
-                    │
-                    ▼
-               Query DB for Points
-                    │
-                    ▼
-               Return Hypothetical Response
+![image alt]()
 
 4. Extensibility Points
 - Adding New Certification Tiers
