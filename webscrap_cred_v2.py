@@ -13,7 +13,7 @@ def scrape_credly(url):
     Scrape user name and certification details from Credly profile page.
     """
     # Set up Selenium WebDriver
-    service = Service(executable_path="/Users/sam/Documents/Langgraph/CertAnalysis/lgcertenv/chromedriver")  # Update with your ChromeDriver path
+    service = Service(executable_path="<Path of ChromeDriver>")  # Update with your ChromeDriver path
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
