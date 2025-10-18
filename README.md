@@ -43,16 +43,22 @@ User: "If I clear AWS Solution Architect Professional how many points will I get
 Agent Response: "You will get 10 credit points for that cert."
 
 ## Step 3: View Results
-The agent provides:
+The agent provides:-
 
 Credit Points: Numerical value based on certification tier
+
 Certification Name: Extracted from the badge or query
+
 Validity Status: Whether the certification is currently valid
+
 Reasoning: Clear explanation of the decision
 
 ## Step 4: Continue Conversation
-Users can ask follow-up questions in the same session:
+
+Users can ask follow-up questions in the same session.
+
 User: "What if I get both AWS Solutions Architect and Terraform Associate?"
+
 Agent: [Calculates cumulative points]
 
 # Agent Specification Overview
@@ -66,13 +72,22 @@ System Components
 
 2. State Management
 
-AgentState Schema
-python{
+AgentState Schema;
+
+(python)
+
+{
+    
     "messages": List[Message],      # Conversation history
+    
     "cert_data": Dict | None,       # Extracted certification data
+    
     "credit_points": float | None,  # Calculated points
+    
     "cert_name": str | None,        # Certification name
+    
     "is_valid": bool | None         # Validity status
+
 }
 
 
@@ -83,17 +98,24 @@ Query Classification Logic
 ![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/02af2bfa358b4fdc4fdd4446bef6e25fbb0a2846/img/Credly_Decisionflow.png)
 
 4. Extensibility Points
+
 - Adding New Certification Tiers
+
 - Adding New Data Sources
+
 - Enhancing NLP
 
 
 ## Features
 
 - Extracts certification data from Credly URLs
+
 - Validates certification expiry dates
+
 - Calculates credit points based on certification tier
+
 - Handles both URL queries and hypothetical questions
+
 - Powered by Groq's  model
 
 ## Setup
