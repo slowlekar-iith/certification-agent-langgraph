@@ -10,26 +10,36 @@ How Users Interact with the Agent
 Users can interact with the agent through two methods:
 
 Method A: LangGraph Studio (Visual Interface)
+
 (bash) langgraph dev
 
 Method B: Python Script (Programmatic)
+
 (python) from langgraph_cred_agent import run_agent
+
 response = run_agent("your query here")
 
 ## Step 2: Submit a Query
 Users can ask following types of questions:
+
 Query Type 1: Check Credit Points for a Specific Badge (Expired)
+
 User: "How many credit points can I get for https://www.credly.com/badges/e192db17-f8c5-46aa-8f99-8a565223f1d6?"
+
 Agent Response: "Sorry, your cert has expired. So you won't get any credit points. 
 But otherwise you would have stood to obtain 5 credit points for your Hashicorp Terraform Cert"
 
 Query Type 2: Check Credit Points for a Valid Badge
+
 User: "What about https://www.credly.com/badges/90ee2ee9-f6cf-4d9b-8a52-f631d8644d58?"
+
 Agent Response: "I see that this is an AWS AI Practitioner cert. And it is still valid. 
 So you can be granted 2.5 credit points for it."
 
 Query Type 3: Hypothetical Certification Query
+
 User: "If I clear AWS Solution Architect Professional how many points will I get?"
+
 Agent Response: "You will get 10 credit points for that cert."
 
 ## Step 3: View Results
