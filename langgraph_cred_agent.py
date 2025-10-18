@@ -67,6 +67,7 @@ def extract_certification_data(url: str) -> dict:
 def get_certification_points(cert_name: str) -> dict:
     """
     Query the SQLite database to determine credit points for a certification.
+    Matches certification name against database categories using keyword matching.
     
     Args:
         cert_name: Name of the certification to lookup
@@ -78,25 +79,79 @@ def get_certification_points(cert_name: str) -> dict:
         conn = sqlite3.connect('certifications_data.db')
         cursor = conn.cursor()
         
-        # Get all certification categories
-        cursor.execute("SELECT cert_name, points FROM certifications_data")
+        # Get all certification categories from database
+        cursor.execute("SELECT cert_name, points FROM certifications_data ORDER BY points DESC")
         categories = cursor.fetchall()
         conn.close()
         
         # Normalize cert name for matching
         cert_name_lower = cert_name.lower()
         
-        # Match logic based on certification name
-        if 'professional' in cert_name_lower or 'specialty' in cert_name_lower:
-            return {"category": "Any Professional or Specialty", "points": 10}
-        elif 'associate' in cert_name_lower or 'hashicorp' in cert_name_lower:
-            return {"category": "Any Associate or Hashicorp", "points": 5}
+        # Try to match against each category in database
+        for category_name, points in categories:
+            category_lower = category_name.lower()
+            
+            # Extract keywords from category name (split by space, 'or', 'and')
+            keywords = []
+            for word in category_lower.replace(' or ', ' ').replace(' and ', ' ').split():
+                if len(word) > 2:  # Only consider words longer than 2 characters
+                    keywords.append(word)
+            
+            # Check if any keyword matches the certification name
+            for keyword in keywords:
+                if keyword in cert_name_lower:
+                    return {
+                        "category": category_name,
+                        "points": points
+                    }
+        
+        # If no match found, return the last category (lowest points - "Anything Else")
+        if categories:
+            default_category, default_points = categories[-1]
+            return {
+                "category": default_category,
+                "points": default_points
+            }
         else:
-            return {"category": "Anything Else", "points": 2.5}
+            return {"error": "No categories found in database"}
             
     except Exception as e:
         return {"error": f"Database error: {str(e)}"}
 
+#@tool
+#def get_certification_points(cert_name: str) -> dict:
+#    """
+#    Query the SQLite database to determine credit points for a certification.
+#    
+#    Args:
+#        cert_name: Name of the certification to lookup
+#        
+#    Returns:
+#        Dictionary with matched category and points
+#    """
+#    try:
+#        conn = sqlite3.connect('certifications_data.db')
+#        cursor = conn.cursor()
+#        
+#        # Get all certification categories
+#        cursor.execute("SELECT cert_name, points FROM certifications_data")
+#        categories = cursor.fetchall()
+#        conn.close()
+#        
+#        # Normalize cert name for matching
+#        cert_name_lower = cert_name.lower()
+#        
+#        # Match logic based on certification name
+#        if 'professional' in cert_name_lower or 'specialty' in cert_name_lower:
+#            return {"category": "Any Professional or Specialty", "points": 10}
+#        elif 'associate' in cert_name_lower or 'hashicorp' in cert_name_lower:
+#            return {"category": "Any Associate or Hashicorp", "points": 5}
+#        else:
+#            return {"category": "Anything Else", "points": 2.5}
+#            
+#    except Exception as e:
+#        return {"error": f"Database error: {str(e)}"}
+#
 
 def check_certification_validity(cert_data: dict) -> bool:
     """
