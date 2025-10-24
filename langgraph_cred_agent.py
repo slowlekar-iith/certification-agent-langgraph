@@ -1,8 +1,8 @@
 """
-LangGraph-based Certification Credit Points Agent
+LangGraph-based Certification Credit Points Agent using ReAct Pattern
 
-This agent processes Credly certification URLs and calculates credit points
-based on certification type and validity.
+This agent uses create_react_agent to autonomously process Credly certification URLs 
+and calculate credit points based on certification type and validity.
 """
 
 import os
@@ -10,33 +10,29 @@ import json
 import sqlite3
 import re
 from datetime import datetime
-from typing import TypedDict, Annotated, Sequence
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
+from typing import TypedDict, Annotated
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
-from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import tool
-import subprocess
-
-# State definition for the graph
-class AgentState(TypedDict):
-    messages: Annotated[Sequence[BaseMessage], "The messages in the conversation"]
-    cert_data: dict | None
-    credit_points: float | None
-    cert_name: str | None
-    is_valid: bool | None
 
 
 @tool
-def extract_certification_data(url: str) -> dict:
+def extract_certification_data(url: str) -> str:
     """
-    Extract certification data from a Credly URL using the webscrap_cred_v2.py script.
+    Extract certification data from a Credly URL. ALWAYS call this FIRST when user provides a URL.
+    
+    This tool scrapes the Credly badge page and returns certification details including:
+    - Name: The full certification name (e.g., "HashiCorp Terraform Associate")
+    - Certification Expiry Date: The expiry date string (e.g., "Expires: January 15, 2023")
+    - Issue Date: When the certification was issued
+    - User names: The badge holders
     
     Args:
-        url: The Credly certification URL to scrape
+        url: The Credly certification URL (format: https://www.credly.com/badges/...)
         
     Returns:
-        Dictionary containing certification details including name, user, issue date, and expiry date
+        JSON string with structure: {"Name": "...", "Certifications": [{"Certification Expiry Date": "..."}]}
     """
     try:
         # Import and call the scraper directly
@@ -51,29 +47,37 @@ def extract_certification_data(url: str) -> dict:
         
         # Call the scraping function with the URL
         data = scraper_module.scrape_credly_alternative(url)
-        return data
+        
+        # Return as JSON string for the LLM
+        return json.dumps(data, indent=2)
     except AttributeError:
         # If scrape_credly_alternative doesn't exist, try other function names
         try:
             data = scraper_module.scrape_credly(url)
-            return data
+            return json.dumps(data, indent=2)
         except:
-            return {"error": "Could not find scraping function in webscrap_cred_v2.py"}
+            return json.dumps({"error": "Could not find scraping function in webscrap_cred_v2.py"})
     except Exception as e:
-        return {"error": f"Error calling scraper: {str(e)}"}
+        return json.dumps({"error": f"Error calling scraper: {str(e)}"})
 
 
 @tool
-def get_certification_points(cert_name: str) -> dict:
+def get_certification_points(cert_name: str) -> str:
     """
-    Query the SQLite database to determine credit points for a certification.
-    Matches certification name against database categories using keyword matching.
+    Get credit points for a certification by looking it up in the database.
+    
+    The database has these categories with point values:
+    - "Any Professional or Specialty" = 10 points (matches: professional, specialty)
+    - "Any Associate or Hashicorp" = 5 points (matches: associate, hashicorp, terraform)
+    - "Anything Else" = 2.5 points (default for all others)
     
     Args:
-        cert_name: Name of the certification to lookup
+        cert_name: Full certification name (e.g., "AWS Solutions Architect Professional", 
+                   "HashiCorp Terraform Associate", "AWS AI Practitioner")
         
     Returns:
-        Dictionary with matched category and points
+        JSON with: {"category": "...", "points": number, "cert_name": "..."}
+        Use the "points" value in your response to the user.
     """
     try:
         conn = sqlite3.connect('certifications_data.db')
@@ -91,221 +95,179 @@ def get_certification_points(cert_name: str) -> dict:
         for category_name, points in categories:
             category_lower = category_name.lower()
             
-            # Extract keywords from category name (split by space, 'or', 'and')
+            # Extract keywords from category name
             keywords = []
             for word in category_lower.replace(' or ', ' ').replace(' and ', ' ').split():
-                if len(word) > 2:  # Only consider words longer than 2 characters
+                if len(word) > 2:
                     keywords.append(word)
             
             # Check if any keyword matches the certification name
             for keyword in keywords:
                 if keyword in cert_name_lower:
-                    return {
+                    return json.dumps({
                         "category": category_name,
-                        "points": points
-                    }
+                        "points": points,
+                        "cert_name": cert_name
+                    })
         
-        # If no match found, return the last category (lowest points - "Anything Else")
+        # If no match found, return the last category (lowest points)
         if categories:
             default_category, default_points = categories[-1]
-            return {
+            return json.dumps({
                 "category": default_category,
-                "points": default_points
-            }
+                "points": default_points,
+                "cert_name": cert_name
+            })
         else:
-            return {"error": "No categories found in database"}
+            return json.dumps({"error": "No categories found in database"})
             
     except Exception as e:
-        return {"error": f"Database error: {str(e)}"}
+        return json.dumps({"error": f"Database error: {str(e)}"})
 
-#@tool
-#def get_certification_points(cert_name: str) -> dict:
-#    """
-#    Query the SQLite database to determine credit points for a certification.
-#    
-#    Args:
-#        cert_name: Name of the certification to lookup
-#        
-#    Returns:
-#        Dictionary with matched category and points
-#    """
-#    try:
-#        conn = sqlite3.connect('certifications_data.db')
-#        cursor = conn.cursor()
-#        
-#        # Get all certification categories
-#        cursor.execute("SELECT cert_name, points FROM certifications_data")
-#        categories = cursor.fetchall()
-#        conn.close()
-#        
-#        # Normalize cert name for matching
-#        cert_name_lower = cert_name.lower()
-#        
-#        # Match logic based on certification name
-#        if 'professional' in cert_name_lower or 'specialty' in cert_name_lower:
-#            return {"category": "Any Professional or Specialty", "points": 10}
-#        elif 'associate' in cert_name_lower or 'hashicorp' in cert_name_lower:
-#            return {"category": "Any Associate or Hashicorp", "points": 5}
-#        else:
-#            return {"category": "Anything Else", "points": 2.5}
-#            
-#    except Exception as e:
-#        return {"error": f"Database error: {str(e)}"}
-#
 
-def check_certification_validity(cert_data: dict) -> bool:
+@tool
+def check_certification_validity(expiry_date_str: str) -> str:
     """
-    Check if a certification is still valid based on expiry date.
+    Check if a certification is still valid. Call this AFTER extracting certification data.
+    
+    Pass the "Certification Expiry Date" field value from the extracted data.
     
     Args:
-        cert_data: Dictionary containing certification information
+        expiry_date_str: The expiry date string from certification data 
+                        (e.g., "Expires: September 26, 2027" or "No Expiration Date")
         
     Returns:
-        Boolean indicating if certification is valid
+        JSON with: {"is_valid": true/false, "message": "Valid" or "Expired", "days_remaining": number}
+        - is_valid: true means cert is still active, false means expired
+        - Use this to determine if user gets points (expired = 0 points)
     """
     try:
-        if "Certifications" not in cert_data or len(cert_data["Certifications"]) == 0:
-            return False
+        # Check for "No Expiration Date" first
+        if "no expiration" in expiry_date_str.lower() or "does not expire" in expiry_date_str.lower():
+            return json.dumps({
+                "is_valid": True,
+                "message": "Valid - Does not expire",
+                "days_remaining": "N/A"
+            })
         
-        cert = cert_data["Certifications"][0]
-        expiry_str = cert.get("Certification Expiry Date", "")
+        # Extract date from string
+        date_patterns = [
+            r'expires?:?\s*(\w+\s+\d+,\s+\d{4})',
+            r'expir[y|ation]*\s*date:?\s*(\w+\s+\d+,\s+\d{4})',
+            r'(\w+\s+\d+,\s+\d{4})',
+        ]
         
-        # Extract date from string like "Expires: September 26, 2027"
-        date_match = re.search(r'(\w+\s+\d+,\s+\d{4})', expiry_str)
-        if date_match:
-            expiry_date_str = date_match.group(1)
-            expiry_date = datetime.strptime(expiry_date_str, "%B %d, %Y")
+        expiry_date = None
+        for pattern in date_patterns:
+            date_match = re.search(pattern, expiry_date_str, re.IGNORECASE)
+            if date_match:
+                expiry_date_str_clean = date_match.group(1)
+                try:
+                    expiry_date = datetime.strptime(expiry_date_str_clean, "%B %d, %Y")
+                    break
+                except ValueError:
+                    continue
+        
+        if expiry_date:
             current_date = datetime.now()
-            return current_date < expiry_date
-        
-        # If no expiry date found, check for "No Expiration Date"
-        if "no expiration" in expiry_str.lower():
-            return True
+            is_valid = current_date < expiry_date
+            days_remaining = (expiry_date - current_date).days
             
-        return False
+            return json.dumps({
+                "is_valid": is_valid,
+                "expiry_date": expiry_date.strftime("%Y-%m-%d"),
+                "days_remaining": days_remaining if is_valid else 0,
+                "message": "Valid" if is_valid else "Expired"
+            })
+        
+        return json.dumps({
+            "is_valid": False,
+            "message": "Expired - Could not parse date",
+            "days_remaining": 0
+        })
+        
     except Exception as e:
-        print(f"Error checking validity: {e}")
-        return False
+        return json.dumps({
+            "error": f"Error checking validity: {str(e)}",
+            "is_valid": False,
+            "message": "Error"
+        })
 
 
-# Define the agent node
-def agent_node(state: AgentState):
-    """
-    Main agent logic node that processes user queries about certifications.
-    """
-    # messages = state["messages"] # This was not working for langgraph studio
-    messages = state.get("messages", [])
-    if not messages:
-        return state
+# System prompt for the agent
+SYSTEM_PROMPT = """You are a certification credit points calculator agent. Your job is to help users determine how many credit points they can earn for their professional certifications.
+
+**CRITICAL WORKFLOW INSTRUCTIONS:**
+
+For Credly URL queries:
+1. ALWAYS call extract_certification_data first to get the certification details
+2. Then call check_certification_validity with the expiry date string from the data
+3. Then call get_certification_points with the certification name
+4. Finally, format your response based on validity status
+
+For hypothetical certification queries (e.g., "If I clear AWS..."):
+1. Call get_certification_points with the certification name
+2. Respond with the simple format
+
+**EXACT RESPONSE FORMATS (FOLLOW THESE PRECISELY):**
+
+For EXPIRED certifications:
+"Sorry, your cert has expired. So you won't get any credit points. But otherwise you would have stood to obtain [POINTS] credit points for your [CERT_NAME]"
+
+For VALID certifications:
+"I see that this is a [CERT_NAME]. And it is still valid. So you can be granted [POINTS] credit points for it."
+
+For HYPOTHETICAL queries:
+"You will get [POINTS] credit points for that cert."
+
+**IMPORTANT RULES:**
+- Use the EXACT wording from the formats above
+- For expired certs, award 0 points but mention what they would have gotten
+- Extract the certification name from the scraped data (look for "Name" field)
+- Always use the points value from the database tool
+- Don't add extra explanations or details
+- Follow the capitalization and punctuation exactly
+
+**Example Tool Usage Flow:**
+User: "How many points for https://credly.com/badges/abc123?"
+1. Call extract_certification_data("https://credly.com/badges/abc123")
+   Result: {"Name": "HashiCorp Terraform Associate", "Certifications": [{"Certification Expiry Date": "Expires: January 15, 2023"}]}
+2. Call check_certification_validity("Expires: January 15, 2023")
+   Result: {"is_valid": false, "message": "Expired"}
+3. Call get_certification_points("HashiCorp Terraform Associate")
+   Result: {"category": "Any Associate or Hashicorp", "points": 5}
+4. Response: "Sorry, your cert has expired. So you won't get any credit points. But otherwise you would have stood to obtain 5 credit points for your HashiCorp Terraform Associate"
+
+Be precise and follow the formats exactly!"""
+
+
+def create_certification_agent():
+    """Create and compile the LangGraph ReAct agent."""
     
-    #last_message = messages[-1].content # This alone was giving error in langgraph studio
-
-    # Handle both dict and BaseMessage formats
-    last_message = messages[-1]
-    if isinstance(last_message, dict):
-        last_message_content = last_message.get("content", "")
-    else:
-        last_message_content = last_message.content
-    
-    # Initialize LLM with Groq
+    # Initialize LLM
     llm = ChatGroq(
         model="llama-3.3-70b-versatile",
         temperature=0,
         api_key=os.getenv("GROQ_API_KEY")
     )
     
-    # Check if this is a URL query
-    url_pattern = r'https?://(?:www\.)?credly\.com/badges/[a-zA-Z0-9\-]+'
-    urls = re.findall(url_pattern, last_message_content)
+    # Define tools
+    tools = [
+        extract_certification_data,
+        check_certification_validity,
+        get_certification_points
+    ]
     
-    if urls:
-        # Extract data from URL
-        url = urls[0]
-        cert_data = extract_certification_data.invoke({"url": url})
-        
-        if "error" in cert_data:
-            return {
-                "messages": messages + [AIMessage(content=f"I encountered an error: {cert_data['error']}")]
-            }
-        
-        # Check validity
-        is_valid = check_certification_validity(cert_data)
-        
-        # Get certification name
-        cert_name = cert_data.get("Name", "Unknown")
-        
-        # Get points
-        points_data = get_certification_points.invoke({"cert_name": cert_name})
-        points = points_data.get("points", 0)
-        category = points_data.get("category", "Unknown")
-        
-        # Generate response
-        if not is_valid:
-            response = f"Sorry, your cert has expired. So you won't get any credit points. But otherwise you would have stood to obtain {points} credit points for your {cert_name}"
-        else:
-            response = f"I see that this is a {cert_name}. And it is still valid. So you can be granted {points} credit points for it."
-        
-        return {
-            "messages": messages + [AIMessage(content=response)],
-            "cert_data": cert_data,
-            "credit_points": points if is_valid else 0,
-            "cert_name": cert_name,
-            "is_valid": is_valid
-        }
-    else:
-        # Handle hypothetical questions like "If I clear AWS Solution Architect Professional"
-        # Use LLM to extract certification name and query database
-        prompt = f"""
-        Based on this user question: "{last_message}"
-        
-        Extract the certification name mentioned. If the user is asking about a hypothetical certification
-        (like "if I clear" or "how many points will I get"), identify the certification name and respond
-        with just the certification name.
-        """
-        
-        response = llm.invoke([SystemMessage(content=prompt)])
-        extracted_cert = response.content.strip()
-        
-        # Get points for the certification
-        points_data = get_certification_points.invoke({"cert_name": extracted_cert})
-        points = points_data.get("points", 0)
-        
-        response_text = f"You will get {points} credit points for that cert."
-        
-        return {
-            "messages": messages + [AIMessage(content=response_text)],
-            "cert_data": {},
-            "credit_points": points,
-            "cert_name": extracted_cert,
-            "is_valid": True
-        }
-
-
-def should_continue(state: AgentState):
-    """Determine if we should continue or end the conversation."""
-    return END
-
-
-# Build the graph
-def create_certification_agent():
-    """Create and compile the LangGraph agent."""
-    workflow = StateGraph(AgentState)
+    # Create ReAct agent (no state_modifier in this version)
+    agent = create_react_agent(llm, tools)
     
-    # Add nodes
-    workflow.add_node("agent", agent_node)
-    
-    # Add edges
-    workflow.set_entry_point("agent")
-    workflow.add_edge("agent", END)
-    
-    # Compile
-    app = workflow.compile()
-    return app
+    return agent
+
 
 # Create the app instance for LangGraph Studio
 app = create_certification_agent()
 
-# Main execution function
+
 def run_agent(user_input: str):
     """
     Run the certification credit agent with a user input.
@@ -316,33 +278,37 @@ def run_agent(user_input: str):
     Returns:
         Agent's response
     """
-    # app = create_certification_agent() # Should not be done here else langgraph studio won't open
-    
+    # Prepend system message to the conversation
     initial_state = {
-        "messages": [HumanMessage(content=user_input)],
-        "cert_data": {},
-        "credit_points": 0.0,
-        "cert_name": "",
-        "is_valid": False
+        "messages": [
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=user_input)
+        ]
     }
     
     result = app.invoke(initial_state)
-    return result["messages"][-1].content
+    
+    # Get the last message (agent's final response)
+    last_message = result["messages"][-1]
+    return last_message.content
 
 
 # Example usage
 if __name__ == "__main__":
-    print("Certification Credit Points Agent")
+    print("Certification Credit Points Agent (ReAct)")
     print("=" * 50)
     
     # Example queries
     queries = [
         "How many credit points can I get for https://www.credly.com/badges/e192db17-f8c5-46aa-8f99-8a565223f1d6?",
-        "What about https://www.credly.com/badges/90ee2ee9-f6cf-4d9b-8a52-f631d8644d58 ?",
+        "What about https://www.credly.com/badges/90ee2ee9-f6cf-4d9b-8a52-f631d8644d58?",
         "If I clear AWS Solution Architect Professional how many points will I get?"
     ]
     
     for query in queries:
         print(f"\nUser: {query}")
-        response = run_agent(query)
-        print(f"System: {response}")
+        try:
+            response = run_agent(query)
+            print(f"System: {response}")
+        except Exception as e:
+            print(f"Error: {e}")
