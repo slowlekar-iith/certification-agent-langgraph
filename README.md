@@ -174,13 +174,17 @@ print(response)
 
 ## Query & Traces (Reference Screenshots)
 
-![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/eb2ac8ae632577e3b7ba39ec966df549d92e8e32/img/Credly_Query1_Screenshot.png)
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/29291355e00238b4e073643b185d2e2ac8205352/img/Credly_v1_Query1_1.png)
 
-![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/eb2ac8ae632577e3b7ba39ec966df549d92e8e32/img/Credly_Query2_Screenshot.png)
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/29291355e00238b4e073643b185d2e2ac8205352/img/Credly_v1_Query1_2.png)
 
-![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/eb2ac8ae632577e3b7ba39ec966df549d92e8e32/img/Credly_Query3_Screenshot.png)
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/29291355e00238b4e073643b185d2e2ac8205352/img/Credly_v1_Query2_1.png)
 
-![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/eb2ac8ae632577e3b7ba39ec966df549d92e8e32/img/Credly_Trace_Screenshot.png)
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/29291355e00238b4e073643b185d2e2ac8205352/img/Credly_v1_Query2_2.png)
+
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/29291355e00238b4e073643b185d2e2ac8205352/img/Credly_v1_Query3.png)
+
+![image alt](https://github.com/slowlekar-iith/certification-agent-langgraph/blob/29291355e00238b4e073643b185d2e2ac8205352/img/Credly_v1_traces.png)
 
 ## Database/Table Records View
 
